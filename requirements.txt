@@ -4,3 +4,5 @@ python-dotenv
 httpx
 google-generativeai
 pydantic
+langchain
+langchain-google-genai
