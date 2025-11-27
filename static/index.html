@@ -4,249 +4,595 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PR Review Agent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;600;800&family=Newsreader:wght@200;400;700&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-surface: #14141f;
+            --bg-elevated: #1a1a2e;
+            --accent-primary: #00ff9f;
+            --accent-dim: #00cc7f;
+            --text-primary: #e8e8f0;
+            --text-secondary: #9090a8;
+            --text-dim: #606075;
+            --border: #2a2a3e;
+            --error: #ff4d6d;
+            --warning: #ffd93d;
+            --info: #00d9ff;
+        }
+        
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+        }
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-dark);
+            color: var(--text-primary);
             min-height: 100vh;
-            padding: 20px;
+            padding: 0;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 159, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 217, 255, 0.04) 0%, transparent 50%);
+            background-attachment: fixed;
         }
+        
+        .noise {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            z-index: 1;
+        }
+        
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
+            padding: 60px 40px;
+            position: relative;
+            z-index: 2;
         }
+        
         .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 30px;
+            margin-bottom: 80px;
+            animation: slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
         }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
         .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            font-family: 'Newsreader', serif;
+            font-size: clamp(3rem, 8vw, 5.5rem);
+            font-weight: 200;
+            letter-spacing: -0.03em;
             margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
+        
+        .header .subtitle {
+            font-size: 0.95rem;
+            font-weight: 300;
+            color: var(--text-secondary);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        
+        .card {
+            background: var(--bg-surface);
+            border-radius: 2px;
+            border: 1px solid var(--border);
+            padding: 0;
+            margin-bottom: 40px;
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .card:hover::before {
+            opacity: 0.5;
+        }
+        
         .tabs {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #e5e7eb;
+            border-bottom: 1px solid var(--border);
+            padding: 0 40px;
         }
+        
         .tab {
-            padding: 12px 24px;
+            padding: 20px 0;
+            margin-right: 40px;
             background: none;
             border: none;
             cursor: pointer;
-            font-size: 1rem;
-            color: #6b7280;
-            border-bottom: 3px solid transparent;
-            transition: all 0.2s;
+            font-size: 0.85rem;
+            font-weight: 300;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            position: relative;
+            transition: color 0.3s;
+            font-family: 'JetBrains Mono', monospace;
         }
+        
+        .tab::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--accent-primary);
+            transform: scaleX(0);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
         .tab.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
-            font-weight: 600;
+            color: var(--accent-primary);
         }
+        
+        .tab.active::after {
+            transform: scaleX(1);
+        }
+        
         .tab-content {
             display: none;
+            padding: 40px;
         }
+        
         .tab-content.active {
             display: block;
+            animation: contentFade 0.4s ease-out;
         }
+        
+        @keyframes contentFade {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
         label {
             display: block;
             font-weight: 600;
-            margin-bottom: 8px;
-            color: #374151;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
         }
+        
         input, textarea {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.2s;
+            padding: 16px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 300;
         }
+        
         input:focus, textarea:focus {
             outline: none;
-            border-color: #667eea;
-        }
-        textarea {
-            min-height: 200px;
-            font-family: 'Courier New', monospace;
-            resize: vertical;
-        }
-        .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 14px 32px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-top: 15px;
-        }
-        .btn:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(0, 255, 159, 0.1);
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
+        
+        input::placeholder, textarea::placeholder {
+            color: var(--text-dim);
+        }
+        
+        textarea {
+            min-height: 240px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+        
+        .btn {
+            background: var(--accent-primary);
+            color: var(--bg-dark);
+            padding: 16px 40px;
+            border: none;
+            border-radius: 2px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            margin-top: 24px;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            font-family: 'JetBrains Mono', monospace;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 255, 159, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(-1px);
+        }
+        
         .btn:disabled {
-            opacity: 0.6;
+            opacity: 0.3;
             cursor: not-allowed;
             transform: none;
         }
+        
         .loading {
             display: none;
             text-align: center;
-            padding: 20px;
-            color: #667eea;
+            padding: 60px 20px;
+            animation: fadeIn 0.3s;
         }
+        
         .spinner {
-            border: 3px solid #f3f4f6;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 20px;
+            position: relative;
         }
+        
+        .spinner::before,
+        .spinner::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: var(--accent-primary);
+            animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+        }
+        
+        .spinner::before {
+            width: 50px;
+            height: 50px;
+        }
+        
+        .spinner::after {
+            width: 35px;
+            height: 35px;
+            top: 7px;
+            left: 7px;
+            animation-duration: 1.6s;
+            animation-direction: reverse;
+            border-top-color: var(--info);
+        }
+        
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        .loading-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        
         .results {
             display: none;
         }
-        .summary {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 25px;
-            flex-wrap: wrap;
+        
+        .results .card {
+            animation-delay: 0.4s;
         }
-        .stat {
-            flex: 1;
-            min-width: 120px;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-        }
-        .stat.total { background: #f3f4f6; }
-        .stat.high { background: #fee2e2; color: #991b1b; }
-        .stat.medium { background: #fef3c7; color: #92400e; }
-        .stat.low { background: #dbeafe; color: #1e40af; }
-        .stat-value {
+        
+        .results h2 {
+            font-family: 'Newsreader', serif;
             font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 5px;
+            font-weight: 200;
+            margin-bottom: 40px;
+            padding: 0 40px;
+            padding-top: 40px;
+            color: var(--text-primary);
         }
+        
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1px;
+            background: var(--border);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 0;
+        }
+        
+        .stat {
+            padding: 30px 20px;
+            text-align: center;
+            background: var(--bg-surface);
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .stat:hover {
+            background: var(--bg-elevated);
+        }
+        
+        .stat.total { border-left: 3px solid var(--text-dim); }
+        .stat.high { border-left: 3px solid var(--error); }
+        .stat.medium { border-left: 3px solid var(--warning); }
+        .stat.low { border-left: 3px solid var(--info); }
+        
+        .stat-value {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
         .stat-label {
-            font-size: 0.875rem;
+            font-size: 0.7rem;
             text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text-dim);
             font-weight: 600;
         }
-        .comment {
-            border-left: 4px solid #e5e7eb;
-            padding: 15px;
-            margin-bottom: 15px;
-            background: #f9fafb;
-            border-radius: 4px;
+        
+        .comments-container {
+            padding: 40px;
         }
-        .comment.high { border-left-color: #dc2626; }
-        .comment.medium { border-left-color: #f59e0b; }
-        .comment.low { border-left-color: #3b82f6; }
+        
+        .comment {
+            border-left: 2px solid var(--border);
+            padding: 24px;
+            margin-bottom: 24px;
+            background: var(--bg-elevated);
+            border-radius: 0 2px 2px 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .comment:nth-child(1) { animation-delay: 0.1s; }
+        .comment:nth-child(2) { animation-delay: 0.15s; }
+        .comment:nth-child(3) { animation-delay: 0.2s; }
+        .comment:nth-child(4) { animation-delay: 0.25s; }
+        .comment:nth-child(5) { animation-delay: 0.3s; }
+        
+        .comment:hover {
+            transform: translateX(4px);
+            border-left-width: 4px;
+        }
+        
+        .comment.high { border-left-color: var(--error); }
+        .comment.medium { border-left-color: var(--warning); }
+        .comment.low { border-left-color: var(--info); }
+        
         .comment-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
         }
+        
         .comment-file {
-            font-family: 'Courier New', monospace;
             font-weight: 600;
-            color: #374151;
+            color: var(--accent-primary);
+            font-size: 0.85rem;
         }
+        
         .comment-meta {
             display: flex;
-            gap: 10px;
-            font-size: 0.875rem;
+            gap: 8px;
         }
+        
         .badge {
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 2px;
+            font-weight: 800;
             text-transform: uppercase;
-            font-size: 0.75rem;
+            font-size: 0.65rem;
+            letter-spacing: 0.1em;
         }
-        .badge.high { background: #dc2626; color: white; }
-        .badge.medium { background: #f59e0b; color: white; }
-        .badge.low { background: #3b82f6; color: white; }
+        
+        .badge.high { background: var(--error); color: var(--bg-dark); }
+        .badge.medium { background: var(--warning); color: var(--bg-dark); }
+        .badge.low { background: var(--info); color: var(--bg-dark); }
         .badge.category {
-            background: #e5e7eb;
-            color: #374151;
+            background: var(--bg-dark);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
         }
+        
         .comment-message {
-            color: #1f2937;
-            margin-bottom: 8px;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            line-height: 1.7;
+            font-weight: 300;
+            font-size: 0.9rem;
+        }
+        
+        .comment-suggestion {
+            background: var(--bg-surface);
+            padding: 16px;
+            border-radius: 2px;
+            color: var(--accent-dim);
+            font-size: 0.85rem;
+            border-left: 2px solid var(--accent-primary);
+            font-weight: 300;
             line-height: 1.6;
         }
-        .comment-suggestion {
-            background: white;
-            padding: 10px;
-            border-radius: 4px;
-            color: #059669;
-            font-size: 0.875rem;
+        
+        .comment-suggestion::before {
+            content: '→ ';
+            color: var(--accent-primary);
+            font-weight: 600;
         }
+        
         .error {
-            background: #fee2e2;
-            color: #991b1b;
-            padding: 15px;
-            border-radius: 8px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--error);
+            color: var(--error);
+            padding: 20px;
+            border-radius: 2px;
             display: none;
+            margin-top: 20px;
+            font-weight: 300;
+            font-size: 0.9rem;
+        }
+        
+        .success-message {
+            text-align: center;
+            padding: 80px 40px;
+            color: var(--accent-primary);
+            font-size: 1rem;
+            font-weight: 300;
+            letter-spacing: 0.05em;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 40px 20px;
+            }
+            
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .tabs {
+                padding: 0 20px;
+            }
+            
+            .tab {
+                margin-right: 20px;
+                font-size: 0.75rem;
+            }
+            
+            .tab-content {
+                padding: 30px 20px;
+            }
+            
+            .results h2 {
+                padding: 30px 20px 20px;
+            }
+            
+            .comments-container {
+                padding: 20px;
+            }
+            
+            .stat {
+                padding: 20px 15px;
+            }
+            
+            .stat-value {
+                font-size: 2rem;
+            }
         }
     </style>
 </head>
 <body>
+    <div class="noise"></div>
+    
     <div class="container">
         <div class="header">
-            <h1>🤖 PR Review Agent</h1>
-            <p>AI-powered code review using multi-agent analysis</p>
+            <h1>Code Review Intelligence</h1>
+            <p class="subtitle">Multi-Agent Analysis System</p>
         </div>
 
         <div class="card">
             <div class="tabs">
-                <button class="tab active" onclick="switchTab('pr')">GitHub PR URL</button>
+                <button class="tab active" onclick="switchTab('pr')">GitHub PR</button>
                 <button class="tab" onclick="switchTab('diff')">Raw Diff</button>
             </div>
 
             <div id="pr-tab" class="tab-content active">
-                <label for="pr-url">Enter GitHub Pull Request URL</label>
+                <label for="pr-url">Pull Request URL</label>
                 <input 
                     type="text" 
                     id="pr-url" 
                     placeholder="https://github.com/owner/repo/pull/123"
                 >
-                <button class="btn" onclick="reviewPR()">Analyze PR</button>
+                <button class="btn" onclick="reviewPR()">Analyze</button>
             </div>
 
             <div id="diff-tab" class="tab-content">
-                <label for="diff-text">Paste Git Diff</label>
+                <label for="diff-text">Git Diff Content</label>
                 <textarea 
                     id="diff-text" 
-                    placeholder="diff --git a/file.py b/file.py&#10;index 1234567..abcdefg 100644&#10;--- a/file.py&#10;+++ b/file.py&#10;@@ -10,5 +10,7 @@&#10; def example():&#10;+    # new code here"
+                    placeholder="diff --git a/file.py b/file.py&#10;index 1234567..abcdefg 100644&#10;--- a/file.py&#10;+++ b/file.py&#10;@@ -10,5 +10,7 @@&#10; def example():&#10;+    return value"
                 ></textarea>
-                <button class="btn" onclick="reviewDiff()">Analyze Diff</button>
+                <button class="btn" onclick="reviewDiff()">Analyze</button>
             </div>
 
             <div class="error" id="error"></div>
@@ -254,20 +600,22 @@
 
         <div class="loading" id="loading">
             <div class="spinner"></div>
-            <p>Analyzing code with AI agents...</p>
+            <p class="loading-text">Processing Analysis</p>
         </div>
 
         <div class="results" id="results">
             <div class="card">
-                <h2 style="margin-bottom: 20px;">Review Results</h2>
+                <h2>Analysis Results</h2>
                 <div class="summary" id="summary"></div>
-                <div id="comments"></div>
+                <div class="comments-container">
+                    <div id="comments"></div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:8000';
+        const API_BASE = window.location.origin;
 
         function switchTab(tab) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -280,7 +628,7 @@
         async function reviewPR() {
             const url = document.getElementById('pr-url').value.trim();
             if (!url) {
-                showError('Please enter a GitHub PR URL');
+                showError('Enter a valid GitHub PR URL');
                 return;
             }
 
@@ -296,7 +644,7 @@
 
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.detail || 'Failed to analyze PR');
+                    throw new Error(error.detail || 'Analysis failed');
                 }
 
                 const data = await response.json();
@@ -311,7 +659,7 @@
         async function reviewDiff() {
             const diff = document.getElementById('diff-text').value.trim();
             if (!diff) {
-                showError('Please paste a git diff');
+                showError('Provide git diff content');
                 return;
             }
 
@@ -327,7 +675,7 @@
 
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.detail || 'Failed to analyze diff');
+                    throw new Error(error.detail || 'Analysis failed');
                 }
 
                 const data = await response.json();
@@ -342,11 +690,10 @@
         function displayResults(data) {
             const { summary, comments } = data;
 
-            // Display summary
             const summaryHTML = `
                 <div class="stat total">
                     <div class="stat-value">${summary.total_comments}</div>
-                    <div class="stat-label">Total Issues</div>
+                    <div class="stat-label">Total</div>
                 </div>
                 <div class="stat high">
                     <div class="stat-value">${summary.high}</div>
@@ -363,9 +710,8 @@
             `;
             document.getElementById('summary').innerHTML = summaryHTML;
 
-            // Display comments
             const commentsHTML = comments.length === 0 
-                ? '<p style="text-align: center; color: #059669; padding: 40px;">✅ No issues found! Code looks good.</p>'
+                ? '<div class="success-message">No issues detected. Code quality verified.</div>'
                 : comments.map(c => `
                     <div class="comment ${c.severity}">
                         <div class="comment-header">
@@ -376,7 +722,7 @@
                             </div>
                         </div>
                         <div class="comment-message">${c.message}</div>
-                        <div class="comment-suggestion">💡 ${c.suggestion}</div>
+                        <div class="comment-suggestion">${c.suggestion}</div>
                     </div>
                 `).join('');
             
